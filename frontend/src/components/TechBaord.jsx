@@ -1,6 +1,6 @@
 import axios from "axios";
 import { Container, Row, Form, Table, Button, Dropdown } from 'react-bootstrap';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import "../css/TechBoard.css"
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -25,12 +25,7 @@ const TechBoard = () => {
     const [reference, setReference] = useState("");
     const [detail, setDetail] = useState("");
 
-    const [showPicker, setShowPicker] = useState(false);
-
-    const ChangePickerStatus = () =>{
-        setShowPicker(!showPicker);
-    }
-
+    const [requestList, setRequestList] = useState([]);
 
     const ChangeBelong = (eventKey, event) => {
         setBelong(event.target.text);
@@ -56,6 +51,21 @@ const TechBoard = () => {
         setDetail(event.target.value);
     };
 
+    const RequestAllList = async() => {
+        try{
+            const list = await axios.get("http://127.0.0.1:8000/api/tech/",
+                            {
+                                headers:{ 
+                                    "Content-Type": "application/json"
+                            }});
+            
+            setRequestList(list.data.data);
+
+        } catch {
+            alert("에러");
+        }
+
+    };
     const RequestRegist = async(event) => {
         event.preventDefault();
         try {
@@ -74,6 +84,11 @@ const TechBoard = () => {
         }
         
     };
+
+    useEffect(() => {
+        RequestAllList();
+
+    }, []);
 
     return (
         <Container fluid style={{height: "100%", width: "100%"}} >
@@ -168,6 +183,40 @@ const TechBoard = () => {
 
             <Row style={{display: "flex", justifyContent: "center", height: "70vh", alignItems: "center", overflow: "auto"}}>
                 문의 이력이 남을 곳
+                <Table>
+                    <thead>
+                        <th style={{ width: "7%" }}> 요청일 </th>
+                        <th style={{ width: "7%" }}> 마감일 </th>
+                        <th style={{ width: "10%" }}> 소속 </th>
+                        <th style={{ width: "5%" }}> 요청자 </th>
+                        <th style={{ width: "5%" }}> 고객사 </th>
+                        <th style={{ width: "10%" }}> 관련 기술 </th>
+                        <th style={{ width: "10%" }}> URL / APP </th>
+                        <th style={{ width: "20%" }}> 상세 </th>
+                        <th style={{ width: "5%" }}> 처리 상황 </th>
+                    </thead>
+                    <tbody>
+                        
+                            { requestList.map((item) => {
+                                const start_date = ConvertDate({datetime: new Date(item.request_date.$date)})
+                                const end_date = ConvertDate({datetime: new Date(item.dead_line.$date)})
+                                console.log(start_date)
+                                return (
+                                    <tr>
+                                        <td> {start_date} </td>
+                                        <td> {end_date} </td>
+                                        <td> {item.belong} </td>
+                                        <td> {item.requester} </td>
+                                        <td> {item.customer} </td>
+                                        <td> {item.stack} </td>
+                                        <td> {item.reference} </td>
+                                        <td> {item.detail} </td>
+                                        
+                                    </tr>
+                                )
+                            }) }
+                    </tbody>
+                </Table>
             </Row>
         </Container>
     );
