@@ -1,12 +1,13 @@
 import axios from "axios";
-import { Container, Row, Form, Table, Button, Dropdown } from 'react-bootstrap';
+import { Container, Row, Col, Form, Table, Button, Dropdown } from 'react-bootstrap';
 import { useState, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
-import "../css/TechBoard.css"
+import MediaRequest from "./MediaRequest";
+import '../css/BoardStyle.css'
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'react-datepicker/dist/react-datepicker.css';
 
-const TechBoard = () => {
+const MediaBoard = () => {
     const ConvertDate = ({ datetime }) => {
         const year = datetime.getFullYear();
         let month = datetime.getMonth() + 1;
@@ -24,8 +25,13 @@ const TechBoard = () => {
     const [stack, setStack] = useState();
     const [reference, setReference] = useState("");
     const [detail, setDetail] = useState("");
+    const [notice, setNotice] = useState("")
 
     const [requestList, setRequestList] = useState([]);
+
+    const ChangeNotice = (event) => {
+        setNotice(event.target.text);
+    };
 
     const ChangeBelong = (eventKey, event) => {
         setBelong(event.target.text);
@@ -69,7 +75,7 @@ const TechBoard = () => {
     const RequestRegist = async(event) => {
         event.preventDefault();
         try {
-            await axios.post("http://127.0.0.1:8000/api/tech/",
+            const response = await axios.post("http://127.0.0.1:8000/api/tech/",
                             {
                                 dead_line: deadLine, requester, belong,
                                 customer, stack, reference, detail
@@ -78,33 +84,59 @@ const TechBoard = () => {
                                 headers:{ 
                                     "Content-Type": "application/json"
                             }})
+
+            setRequestList([response.data, ...requestList])
+
+            setDeadLine(ConvertDate({datetime: new Date()}));
+            setBelong("선택");
+            setRequester("");
+            setCustomer("");
+            setStack("선택");
+            setReference("");
+            setDetail("");
             
         } catch {
             alert("에러");
         }
         
     };
+    const UpdateRequest = (updateData) => {
+        setRequestList(( prevRequest ) => {
+            return prevRequest.map((requestList) => {
+                if (requestList._id.$oid === updateData._id.$oid){
+                    return updateData
+                }
+                return requestList
+            })
+        })
 
+    }
     useEffect(() => {
         RequestAllList();
-
     }, []);
 
     return (
         <Container fluid style={{height: "100%", width: "100%"}} >
             <Row style={{display: "flex", height: "10vh", backgroundColor: "green", 
                         alignItems: "center", justifyContent: "center", fontSize: "5vh"}}>
-                Marketing Tech 요청 게시판
+                Marketing Media 요청 게시판
             </Row>
 
-            <Row style={{display: "flex", justifyContent: "center", alignItems: "center", height: "5vh"}}>
-                공지사항
+            <Row style={{display: "flex", justifyContent: "center", alignItems: "center", height: "10vh"}}>
+                <Form>
+                    <Form.Group as={Row} >
+                        <Form.Label column sm="2"> 공지사항 </Form.Label>
+                        <Col sm="10">
+                            <Form.Control type="text" value={notice} onChange={ChangeNotice}/>
+                        </Col>
+                    </Form.Group>
+                </Form>
             </Row>
 
-            <Row style={{height: "15vh", alignItems: "center", backgroundColor: "green"}}>
+            <Row style={{height: "100%", alignItems: "center", backgroundColor: "green"}}>
                 <Form onSubmit={RequestRegist} style={{display: "flex", justifyContent: "center", alignItems: "center"}}>
                     <Table variant="dark">
-                        <thead >
+                        <thead>
                             <tr>
                                 <th style={{ width: "7%" }}> 마감일 </th>
                                 <th style={{ width: "10%" }}> 소속 </th>
@@ -118,7 +150,7 @@ const TechBoard = () => {
                         </thead>
                         <tbody >
                             <tr>
-                                <th>
+                                <td>
                                     <DatePicker
                                         selected={deadLine} 
                                         onChange={(date) => setDeadLine(ConvertDate({datetime: date}))}
@@ -126,8 +158,8 @@ const TechBoard = () => {
                                         customInput= {<Form.Control type="text" style={{textAlign: "center"}}/>}
                                     />
                                 
-                                </th>
-                                <th> 
+                                </td>
+                                <td> 
                                     <Dropdown onSelect={ChangeBelong}> 
                                         <Dropdown.Toggle as={Button} variant="light" style={{width: "100%", color: "black"}}>
                                             {belong ? belong : "선택" }
@@ -139,15 +171,15 @@ const TechBoard = () => {
                                             <Dropdown.Item>마케팅 4국</Dropdown.Item>
                                         </Dropdown.Menu>
                                     </Dropdown> 
-                                </th>
-                                <th> <Form.Control type="text" value={requester} onChange={ChangeRequester} style={{textAlign: "center"}}/> </th>
-                                <th> <Form.Control type="text" value={customer} onChange={ChangeCustomer} style={{textAlign: "center"}}/> </th>
-                                <th> 
+                                </td>
+                                <td> <Form.Control type="text" value={requester} onChange={ChangeRequester} style={{textAlign: "center"}}/> </td>
+                                <td> <Form.Control type="text" value={customer} onChange={ChangeCustomer} style={{textAlign: "center"}}/> </td>
+                                <td> 
                                     <Dropdown onSelect={ChangeStack}>  
                                         <Dropdown.Toggle as={Button} variant="light" style={{width: "100%", color: "black"}}>
                                             {stack ? stack : "선택"}
                                         </Dropdown.Toggle>
-                                        <Dropdown.Menu style={{fontSize: "1.5vh"}}>
+                                        <Dropdown.Menu style={{fontSize: "1.5vh", textAlign: "center"}}>
                                             <Dropdown.Item>GTM</Dropdown.Item>
                                             <Dropdown.Item>GA4</Dropdown.Item>
                                             <Dropdown.Item>Looker Studio</Dropdown.Item>
@@ -159,30 +191,28 @@ const TechBoard = () => {
                                             <Dropdown.Item>Naver</Dropdown.Item>
                                             <Dropdown.Divider />
 
-                                            <Dropdown.Item> AB180 </Dropdown.Item>
-                                            <Dropdown.Item> AppsFlyer </Dropdown.Item>
-                                            <Dropdown.Item> Adbrix </Dropdown.Item>
+                                            <Dropdown.Item>AB180</Dropdown.Item>
+                                            <Dropdown.Item>AppsFlyer</Dropdown.Item>
+                                            <Dropdown.Item>Adbrix</Dropdown.Item>
                                             <Dropdown.Divider />
 
-                                            <Dropdown.Item> Tableau </Dropdown.Item>
+                                            <Dropdown.Item>Tableau</Dropdown.Item>
                                             <Dropdown.Divider />
 
-                                            <Dropdown.Item> 그 외 </Dropdown.Item>
+                                            <Dropdown.Item>기타</Dropdown.Item>
                                         </Dropdown.Menu>
                                     </Dropdown> 
-                                </th>
-                                <th> <Form.Control type="text" value={reference} onChange={ChangeReference} style={{textAlign: "center"}}/> </th>
-                                <th> <Form.Control type="text" value={detail} onChange={ChangeDetail} style={{textAlign: "center"}}/> </th>
-                                <th> <Button type="submit" variant="light" style={{ width: "100%"}}> 등록 </Button> </th>
+                                </td>
+                                <td> <Form.Control type="text" value={reference} onChange={ChangeReference} style={{textAlign: "center"}}/> </td>
+                                <td> <Form.Control type="text" value={detail} onChange={ChangeDetail} style={{textAlign: "center"}}/> </td>
+                                <td> <Button type="submit" variant="light" style={{ width: "100%"}}> 요청 </Button> </td>
                             </tr>
                         </tbody>
                     </Table>
                     
                 </Form>
             </Row>
-
-            <Row style={{display: "flex", justifyContent: "center", height: "70vh", alignItems: "center", overflow: "auto"}}>
-                문의 이력이 남을 곳
+            <Row style={{display: "flex", justifyContent: "center", height: "65vh", overflow: "auto"}}>
                 <Table>
                     <thead>
                         <th style={{ width: "7%" }}> 요청일 </th>
@@ -193,28 +223,29 @@ const TechBoard = () => {
                         <th style={{ width: "10%" }}> 관련 기술 </th>
                         <th style={{ width: "10%" }}> URL / APP </th>
                         <th style={{ width: "20%" }}> 상세 </th>
-                        <th style={{ width: "5%" }}> 처리 상황 </th>
+                        <th style={{ width: "5%" }}> 현황 </th>
                     </thead>
-                    <tbody>
-                        
-                            { requestList.map((item) => {
-                                const start_date = ConvertDate({datetime: new Date(item.request_date.$date)})
-                                const end_date = ConvertDate({datetime: new Date(item.dead_line.$date)})
-                                console.log(start_date)
-                                return (
-                                    <tr>
-                                        <td> {start_date} </td>
-                                        <td> {end_date} </td>
-                                        <td> {item.belong} </td>
-                                        <td> {item.requester} </td>
-                                        <td> {item.customer} </td>
-                                        <td> {item.stack} </td>
-                                        <td> {item.reference} </td>
-                                        <td> {item.detail} </td>
-                                        
-                                    </tr>
-                                )
-                            }) }
+                    <tbody style={{verticalAlign: "middle"}}>
+                        { requestList.map((item, index) => {
+                            const start_date = ConvertDate({datetime: new Date(item.request_date.$date)})
+                            const end_date = ConvertDate({datetime: new Date(item.dead_line.$date)})
+                            return (
+                                <MediaRequest
+                                    key={index}
+                                    id={item._id.$oid}
+                                    start_date={start_date}
+                                    end_date={end_date} 
+                                    belong={item.belong}
+                                    requester={item.requester}
+                                    customer={item.customer}
+                                    stack={item.stack}
+                                    reference={item.reference}
+                                    detail={item.detail}
+                                    status={item.status}
+                                    UpdateRequest={UpdateRequest}
+                                    />
+                            )
+                        }) }
                     </tbody>
                 </Table>
             </Row>
@@ -223,4 +254,4 @@ const TechBoard = () => {
 
 };
 
-export default TechBoard;
+export default MediaBoard;

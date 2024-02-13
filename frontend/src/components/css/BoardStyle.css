@@ -1,0 +1,10 @@
+.sticky-header {
+    position: sticky;
+    top: 0;
+    background-color: white; /* 원하는 배경색 */
+    z-index: 1;
+  }
+
+th {
+  vertical-align: middle;
+}

@@ -5,7 +5,7 @@ from bson.json_util import dumps
 from bson.objectid import ObjectId
 import os, json, datetime
 
-from models.tech_models import Create_Request
+from models.tech_models import Create_Request, Adjust_Status
 
 router = APIRouter(prefix="/api/tech", tags=["tech"])
 
@@ -17,7 +17,7 @@ db = client.RequestBoard
 
 @router.get("/")
 def get_request():
-    request_list = db.tech.find()
+    request_list = db.tech.find().sort("_id", -1)
     return {"data": json.loads(dumps(request_list))}
 
 @router.post("/")
@@ -32,8 +32,21 @@ def request_regist(Create_Request: Create_Request):
                     "customer": Create_Request.customer,
                     "stack": Create_Request.stack,
                     "reference": Create_Request.reference,
-                    "detail": Create_Request.detail
+                    "detail": Create_Request.detail,
+                    "status": "처리중"
                     }
     
     db.tech.insert_one(request_data)
     return json.loads(dumps(request_data))
+
+@router.put("/")
+def adjust_status(id: str, Adjust_Status: Adjust_Status):
+    db.tech.update_one({"_id": ObjectId(id)} ,
+                        {"$set": { 
+                            "status": Adjust_Status.status 
+                        }}
+                    )
+    
+    update_data = db.tech.find_one({"_id": ObjectId(id)})
+    
+    return json.loads(dumps(update_data))

@@ -9,4 +9,6 @@ class Create_Request(BaseModel):
     reference: str
     detail: str
 
-    
+
+class Adjust_Status(BaseModel):
+    status: str
