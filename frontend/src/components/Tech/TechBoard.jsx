@@ -28,12 +28,16 @@ const TechBoard = () => {
     const [notice, setNotice] = useState("")
     
     const [requestList, setRequestList] = useState([]);
+    const [filteredList, setFilteredList] = useState([]);
 
     const belongList = ["마케팅 1국", "마케팅 2국", "마케팅 3국", "마케팅 4국"];
     const [belongFilter, setBelongFilter] = useState("전체");
-    const statusList = ["전체", "접수", "처리중", "보류", "완료"];
 
-    const [status, setStatus] = useState("전체");
+    const statusList = ["전체", "접수", "처리중", "보류", "완료"];
+    const [statusFilter, setStatusFilter] = useState("전체");
+
+    const [monthList, setMonthList] = useState(["전체"]);
+    const [monthFilter, setMonthFilter] = useState("전체");
 
     const ChangeNotice = (event) => {
         setNotice(event.target.text);
@@ -48,12 +52,14 @@ const TechBoard = () => {
                             }});
             
             setRequestList(list.data.data);
+            setFilteredList(list.data.data);
 
         } catch {
             alert("에러");
         }
 
     };
+
     const RequestRegist = async(event) => {
         event.preventDefault();
         try {
@@ -88,28 +94,61 @@ const TechBoard = () => {
                 if (requestList._id.$oid === updateData._id.$oid){
                     return updateData
                 }
-                return requestList
-            })
-        })
 
-    }
+                return requestList;
+            });
+        });
+    };
 
-    const StatusFilter = (eventKey) => {
-        // setStatus(eventKey);
-        
-        setRequestList(( allRequest ) => {
-            return allRequest.map((item) => {
-                console.log(item.status)
-            })
-            // return allRequest.map((list) => {
-            //     if (list.status == eventKey){
-            //         return eventKey
-            //     }
-            // })
-        })
-    }
+    const Filter = ({belongF = belongFilter, statusF = statusFilter, monthF = monthFilter}) => {
+        setStatusFilter(statusF);
+        setBelongFilter(belongF);
+        setMonthFilter(monthFilter);
+        const regex = new RegExp(monthF)
+
+        const filteredData = requestList.filter((item) => {
+            const dataList = []
+            if (belongF !== "전체"){
+                dataList.push(item.belong === belongF);
+            };
+
+            if (statusF !== "전체"){
+                dataList.push(item.status === statusF);
+            };
+
+            if (monthF !== "전체"){
+                dataList.push(regex.test(item.request_date.$date));
+            }
+            
+            return dataList.length === 0 || dataList.every(data => data);
+        });
+
+        setFilteredList(filteredData);
+    };
+
+    const RecentMonth = () => {
+        const recentMonth = [];
+
+        const standardMonth = new Date();
+        for (let i = 0; i < 12; i ++){
+            
+            const year = standardMonth.getFullYear();
+            
+            let month = standardMonth.getMonth() + 1;
+            month = month.toString().length === 1 ? `0${month}` : month
+    
+            const formatDate = `${year}.${month}`;
+            recentMonth.push(formatDate);
+    
+            standardMonth.setMonth(standardMonth.getMonth() -1);
+        };
+
+        setMonthList(recentMonth);
+    };
+
     useEffect(() => {
         RequestAllList();
+        RecentMonth();
     }, []);
 
     return (
@@ -129,7 +168,6 @@ const TechBoard = () => {
                     </Form.Group>
                 </Form>
             </Row>
-
             <Row style={{height: "100%", alignItems: "center", backgroundColor: "green"}}>
                 <Form onSubmit={RequestRegist} style={{display: "flex", justifyContent: "center", alignItems: "center"}}>
                     <Table variant="dark">
@@ -154,20 +192,21 @@ const TechBoard = () => {
                                         dateFormat="yyyy. MM. dd"
                                         customInput= {<Form.Control type="text" style={{textAlign: "center"}}/>}
                                     />
-                                
                                 </td>
+
                                 <td> 
                                     <Dropdown onSelect={(eventKey) => setBelong(eventKey)}> 
                                         <Dropdown.Toggle as={Button} variant="light" style={{width: "100%", color: "black"}}>
                                             {belong ? belong : "선택" }
                                         </Dropdown.Toggle>
                                         <Dropdown.Menu style={{fontSize: "1.5vh", textAlign: "center"}}>
-                                            { belongList.map((item) => {
+                                            
+                                            { belongList.map((item, index) => {
                                                 return (
-                                                    <Dropdown.Item eventKey={item}> {item} </Dropdown.Item>
-                                                )
+                                                    <Dropdown.Item key={index} eventKey={item}> {item} </Dropdown.Item>
+                                                );
+                                            })};
 
-                                            })}
                                         </Dropdown.Menu>
                                     </Dropdown> 
                                 </td>
@@ -219,51 +258,67 @@ const TechBoard = () => {
                     
                 </Form>
             </Row>
+        
             <Row style={{display: "flex", justifyContent: "center", height: "65vh", overflow: "auto"}}>
                 <Table>
                     <thead className="sticky-header">
-                        <th style={{ width: "7%" }}> <Button variant="light"> 요청 일자 </Button></th>
-                        <th style={{ width: "7%" }}> <Button variant="light"> 기한 </Button> </th>
-                        <th style={{ width: "10%" }}> 
-                            <Dropdown onSelect={(eventKey) => setBelongFilter(eventKey)}> 
-                                <Dropdown.Toggle as={Button} variant="light" style={{width: "100%", color: "black"}}>
-                                   {belongFilter}
-                                </Dropdown.Toggle>
-                                <Dropdown.Menu style={{fontSize: "1.5vh", textAlign: "center"}}>
-                                    { ["전체",...belongList].map((item) => {
-                                        return (
-                                            <Dropdown.Item eventKey={item}> {item} </Dropdown.Item>
-                                        );
-                                    })};
-                                </Dropdown.Menu>
-                            </Dropdown> 
-                        </th>
-                        <th style={{ width: "5%" }}> <Button variant="light"> 요청자 </Button> </th>
-                        <th style={{ width: "5%" }}> <Button variant="light"> 고객사 </Button> </th>
-                        <th style={{ width: "10%" }}> <Button variant="light"> 범위 </Button> </th>
-                        <th style={{ width: "10%" }}> <Button variant="light"> URL / APP </Button> </th>
-                        <th style={{ width: "20%" }}> <Button variant="light"> 상세 </Button> </th>
-                        <th style={{ width: "5%" }}> 
-                            <Dropdown onSelect={StatusFilter}>
-                                <Dropdown.Toggle as={Button} variant="light" style={{width: "100%", color: "black"}}>
-                                   {status}
-                                </Dropdown.Toggle>
-                                <Dropdown.Menu style={{fontSize: "1.5vh", textAlign: "center"}}>
-                                    {statusList.map((item) => {
-                                        return (
-                                            <Dropdown.Item eventKey={item}> {item} </Dropdown.Item>
-                                        )
-                                    })}
-                                </Dropdown.Menu>
-                            </Dropdown>
-                        </th>
+                        <tr>
+                            <th style={{ width: "7%" }}> 
+                                <Dropdown onSelect={(eventKey) => Filter({monthF: eventKey})}> 
+                                    <Dropdown.Toggle as={Button} variant="light" style={{width: "100%", color: "black"}}>
+                                        { `요청일 : ${monthFilter}`}
+                                    </Dropdown.Toggle>
+                                    <Dropdown.Menu style={{fontSize: "1.5vh", textAlign: "center"}}>
+                                        { ["전체", ...monthList].map((item, index) => {
+                                            return (
+                                                <Dropdown.Item key={index} eventKey={item}> {item} </Dropdown.Item>
+                                            );
+                                        })};
+                                    </Dropdown.Menu>
+                                </Dropdown> 
+                            </th>
+                            <th style={{ width: "7%" }}> <Button variant="light"> 기한 </Button> </th>
+                            <th style={{ width: "10%" }}> 
+                                <Dropdown onSelect={(eventKey) => Filter({ belongF: eventKey})}> 
+                                    <Dropdown.Toggle as={Button} variant="light" style={{width: "100%", color: "black"}}>
+                                        {`소속: ${belongFilter}`}
+                                    </Dropdown.Toggle>
+                                    <Dropdown.Menu style={{fontSize: "1.5vh", textAlign: "center"}}>
+                                        { ["전체",...belongList].map((item, index) => {
+                                            return (
+                                                <Dropdown.Item key={index} eventKey={item}> {item} </Dropdown.Item>
+                                            );
+                                        })};
+                                    </Dropdown.Menu>
+                                </Dropdown> 
+                            </th>
+                            <th style={{ width: "5%" }}> <Button variant="light"> 요청자 </Button> </th>
+                            <th style={{ width: "5%" }}> <Button variant="light"> 고객사 </Button> </th>
+                            <th style={{ width: "10%" }}> <Button variant="light"> 범위 </Button> </th>
+                            <th style={{ width: "10%" }}> <Button variant="light"> URL / APP </Button> </th>
+                            <th style={{ width: "20%" }}> <Button variant="light"> 상세 </Button> </th>
+                            <th style={{ width: "5%" }}> 
+                                <Dropdown onSelect={(eventKey) => Filter({statusF: eventKey})}>
+                                    <Dropdown.Toggle as={Button} variant="light" style={{width: "100%", color: "black"}}>
+                                        {`현황 : ${statusFilter}`}
+                                    </Dropdown.Toggle>
+                                    <Dropdown.Menu style={{fontSize: "1.5vh", textAlign: "center"}}>
+                                        {statusList.map((item, index) => {
+                                            return (
+                                                <Dropdown.Item key={index} eventKey={item}> {item} </Dropdown.Item>
+                                            )
+                                        })}
+                                    </Dropdown.Menu>
+                                </Dropdown>
+                            </th>
+                        </tr>
                     </thead>
                     <tbody style={{verticalAlign: "middle"}}>
-                        { requestList.map((item, index) => {
+                        { filteredList.map((item, index) => {
                             const start_date = ConvertDate({datetime: new Date(item.request_date.$date)})
                             const end_date = ConvertDate({datetime: new Date(item.dead_line.$date)})
                             return (
-                                <TechRequest
+                                <TechRequest 
                                     key={index}
                                     id={item._id.$oid}
                                     start_date={start_date}
@@ -277,8 +332,8 @@ const TechBoard = () => {
                                     status={item.status}
                                     UpdateRequest={UpdateRequest}
                                     />
-                            )
-                        }) }
+                                )
+                        })}
                     </tbody>
                 </Table>
             </Row>

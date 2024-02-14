@@ -19,84 +19,95 @@ const MediaBoard = () => {
         return `${year}.${month}.${day}`
     }
     const [deadLine, setDeadLine] = useState(ConvertDate({datetime : new Date()}));
-    const [belong, setBelong] = useState();
+    const [belong, setBelong] = useState("선택");
     const [requester, setRequester] = useState("");
     const [customer, setCustomer] = useState("");
-    const [stack, setStack] = useState();
-    const [reference, setReference] = useState("");
+    const [category, setcategory] = useState();
+    const [range, setrange] = useState("");
     const [detail, setDetail] = useState("");
-    const [notice, setNotice] = useState("")
+    const [notice, setNotice] = useState("");
+    const [file, setFile] = useState(null);
 
     const [requestList, setRequestList] = useState([]);
+    const [filteredList, setFilteredList] = useState([]);
+
+    const belongList = ["마케팅 1국", "마케팅 2국", "마케팅 3국", "마케팅 4국"];
+    const [belongFilter, setBelongFilter] = useState("전체");
+
+    const statusList = ["전체", "접수", "처리중", "보류", "완료"];
+    const [statusFilter, setStatusFilter] = useState("전체");
+
+    const [monthList, setMonthList] = useState(["전체"]);
+    const [monthFilter, setMonthFilter] = useState("전체");
 
     const ChangeNotice = (event) => {
         setNotice(event.target.text);
     };
 
-    const ChangeBelong = (eventKey, event) => {
-        setBelong(event.target.text);
-    };
-
-    const ChangeRequester = (event) => {
-        setRequester(event.target.value);
-    };
-
-    const ChangeCustomer = (event) => {
-        setCustomer(event.target.value);
-    };
-
-    const ChangeStack = (eventKey, event) => {
-        setStack(event.target.text);
-    };
-
-    const ChangeReference = (event) => {
-        setReference(event.target.value);
-    };
-
-    const ChangeDetail = (event) => {
-        setDetail(event.target.value);
-    };
-
     const RequestAllList = async() => {
         try{
-            const list = await axios.get("http://127.0.0.1:8000/api/tech/",
+            const list = await axios.get("http://127.0.0.1:8000/api/media/",
                             {
                                 headers:{ 
                                     "Content-Type": "application/json"
                             }});
             
             setRequestList(list.data.data);
+            setFilteredList(list.data.data);
 
         } catch {
             alert("에러");
         }
 
     };
+
     const RequestRegist = async(event) => {
         event.preventDefault();
+        console.log(file)
+        const postData = {
+            dead_line: deadLine, 
+            requester: requester, 
+            belong: belong,
+            customer: customer, 
+            category: category, 
+            range: range, 
+            detail: detail
+        }
+
+        const newPostData = new FormData();
+        for (let [key, value] of Object.entries(postData)){
+
+            newPostData.append(key, value);
+        }
+        
+        newPostData.append("Create_Request", "postData")
+
+        newPostData.append("file", file)
+        for (let n of newPostData.entries()) {
+            console.log(n)
+        }
         try {
-            const response = await axios.post("http://127.0.0.1:8000/api/tech/",
-                            {
-                                dead_line: deadLine, requester, belong,
-                                customer, stack, reference, detail
-                            },
+            const response = await axios.post("http://127.0.0.1:8000/api/media/",
+                            newPostData
+                            ,
                             {
                                 headers:{ 
-                                    "Content-Type": "application/json"
+                                    "Content-Type": "multipart/form-data"
                             }})
-
+            return 
             setRequestList([response.data, ...requestList])
 
             setDeadLine(ConvertDate({datetime: new Date()}));
             setBelong("선택");
             setRequester("");
             setCustomer("");
-            setStack("선택");
-            setReference("");
+            setcategory("선택");
+            setrange("");
             setDetail("");
             
-        } catch {
-            alert("에러");
+        } catch (error) {
+            alert(error);
+            console.log(error)
         }
         
     };
@@ -106,13 +117,61 @@ const MediaBoard = () => {
                 if (requestList._id.$oid === updateData._id.$oid){
                     return updateData
                 }
-                return requestList
-            })
-        })
 
-    }
+                return requestList;
+            });
+        });
+    };
+
+    const Filter = ({belongF = belongFilter, statusF = statusFilter, monthF = monthFilter}) => {
+        setStatusFilter(statusF);
+        setBelongFilter(belongF);
+        setMonthFilter(monthFilter);
+        const regex = new RegExp(monthF)
+
+        const filteredData = requestList.filter((item) => {
+            const dataList = []
+            if (belongF !== "전체"){
+                dataList.push(item.belong === belongF);
+            };
+
+            if (statusF !== "전체"){
+                dataList.push(item.status === statusF);
+            };
+
+            if (monthF !== "전체"){
+                dataList.push(regex.test(item.request_date.$date));
+            }
+            
+            return dataList.length === 0 || dataList.every(data => data);
+        });
+
+        setFilteredList(filteredData);
+    };
+
+    const RecentMonth = () => {
+        const recentMonth = [];
+
+        const standardMonth = new Date();
+        for (let i = 0; i < 12; i ++){
+            
+            const year = standardMonth.getFullYear();
+            
+            let month = standardMonth.getMonth() + 1;
+            month = month.toString().length === 1 ? `0${month}` : month
+    
+            const formatDate = `${year}.${month}`;
+            recentMonth.push(formatDate);
+    
+            standardMonth.setMonth(standardMonth.getMonth() -1);
+        };
+
+        setMonthList(recentMonth);
+    };
+
     useEffect(() => {
         RequestAllList();
+        RecentMonth();
     }, []);
 
     return (
@@ -132,7 +191,6 @@ const MediaBoard = () => {
                     </Form.Group>
                 </Form>
             </Row>
-
             <Row style={{height: "100%", alignItems: "center", backgroundColor: "green"}}>
                 <Form onSubmit={RequestRegist} style={{display: "flex", justifyContent: "center", alignItems: "center"}}>
                     <Table variant="dark">
@@ -142,9 +200,10 @@ const MediaBoard = () => {
                                 <th style={{ width: "10%" }}> 소속 </th>
                                 <th style={{ width: "5%" }}> 요청자 </th>
                                 <th style={{ width: "5%" }}> 고객사 </th>
-                                <th style={{ width: "10%" }}> 관련 기술 </th>
-                                <th style={{ width: "10%" }}> URL / APP </th>
+                                <th style={{ width: "10%" }}> 카테고리 </th>
+                                <th style={{ width: "10%" }}> 범주 </th>
                                 <th style={{ width: "20%" }}> 상세 </th>
+                                <th style={{ width: "10%" }}> 첨부파일 </th>
                                 <th style={{ width: "5%" }}>  </th>
                             </tr>
                         </thead>
@@ -157,54 +216,67 @@ const MediaBoard = () => {
                                         dateFormat="yyyy. MM. dd"
                                         customInput= {<Form.Control type="text" style={{textAlign: "center"}}/>}
                                     />
-                                
                                 </td>
+
                                 <td> 
-                                    <Dropdown onSelect={ChangeBelong}> 
+                                    <Dropdown onSelect={(eventKey) => setBelong(eventKey)}> 
                                         <Dropdown.Toggle as={Button} variant="light" style={{width: "100%", color: "black"}}>
                                             {belong ? belong : "선택" }
                                         </Dropdown.Toggle>
-                                        <Dropdown.Menu style={{fontSize: "1.5vh"}}>
-                                            <Dropdown.Item>마케팅 1국</Dropdown.Item>
-                                            <Dropdown.Item>마케팅 2국</Dropdown.Item>
-                                            <Dropdown.Item>마케팅 3국</Dropdown.Item>
-                                            <Dropdown.Item>마케팅 4국</Dropdown.Item>
+                                        <Dropdown.Menu style={{fontSize: "1.5vh", textAlign: "center"}}>
+                                            
+                                            { belongList.map((item, index) => {
+                                                return (
+                                                    <Dropdown.Item key={index} eventKey={item}> {item} </Dropdown.Item>
+                                                );
+                                            })};
+
                                         </Dropdown.Menu>
                                     </Dropdown> 
                                 </td>
-                                <td> <Form.Control type="text" value={requester} onChange={ChangeRequester} style={{textAlign: "center"}}/> </td>
-                                <td> <Form.Control type="text" value={customer} onChange={ChangeCustomer} style={{textAlign: "center"}}/> </td>
+                                <td> <Form.Control type="text" value={requester} 
+                                        onChange={(event) => setRequester(event.target.value)} style={{textAlign: "center"}}/> </td>
+
+                                <td> <Form.Control type="text" value={customer} 
+                                        onChange={(event) => setCustomer(event.target.value)} style={{textAlign: "center"}}/> </td>
+
                                 <td> 
-                                    <Dropdown onSelect={ChangeStack}>  
+                                    <Dropdown onSelect={(eventKey) => setcategory(eventKey)}>  
                                         <Dropdown.Toggle as={Button} variant="light" style={{width: "100%", color: "black"}}>
-                                            {stack ? stack : "선택"}
+                                            {category ? category : "선택"}
                                         </Dropdown.Toggle>
                                         <Dropdown.Menu style={{fontSize: "1.5vh", textAlign: "center"}}>
-                                            <Dropdown.Item>GTM</Dropdown.Item>
-                                            <Dropdown.Item>GA4</Dropdown.Item>
-                                            <Dropdown.Item>Looker Studio</Dropdown.Item>
+                                            <Dropdown.Item eventKey="GTM">GTM</Dropdown.Item>
+                                            <Dropdown.Item eventKey="GA4">GA4</Dropdown.Item>
+                                            <Dropdown.Item eventKey="Looker Studio">Looker Studio</Dropdown.Item>
                                             <Dropdown.Divider />
                                             
-                                            <Dropdown.Item>Facebook / Instagram</Dropdown.Item>
-                                            <Dropdown.Item>Google</Dropdown.Item>
-                                            <Dropdown.Item>Kakako</Dropdown.Item>
-                                            <Dropdown.Item>Naver</Dropdown.Item>
+                                            <Dropdown.Item eventKey="FaceBook / Instagram">Facebook / Instagram</Dropdown.Item>
+                                            <Dropdown.Item eventKey="Google">Google</Dropdown.Item>
+                                            <Dropdown.Item eventKey="Kakao">Kakako</Dropdown.Item>
+                                            <Dropdown.Item eventKey="Naver">Naver</Dropdown.Item>
                                             <Dropdown.Divider />
 
-                                            <Dropdown.Item>AB180</Dropdown.Item>
-                                            <Dropdown.Item>AppsFlyer</Dropdown.Item>
-                                            <Dropdown.Item>Adbrix</Dropdown.Item>
+                                            <Dropdown.Item eventKey="AB180" >AB180</Dropdown.Item>
+                                            <Dropdown.Item eventKey="AppsFlyer">AppsFlyer</Dropdown.Item>
+                                            <Dropdown.Item eventKey="Adbrix">Adbrix</Dropdown.Item>
                                             <Dropdown.Divider />
 
-                                            <Dropdown.Item>Tableau</Dropdown.Item>
+                                            <Dropdown.Item eventKey="Tableau">Tableau</Dropdown.Item>
                                             <Dropdown.Divider />
 
                                             <Dropdown.Item>기타</Dropdown.Item>
                                         </Dropdown.Menu>
                                     </Dropdown> 
                                 </td>
-                                <td> <Form.Control type="text" value={reference} onChange={ChangeReference} style={{textAlign: "center"}}/> </td>
-                                <td> <Form.Control type="text" value={detail} onChange={ChangeDetail} style={{textAlign: "center"}}/> </td>
+                                <td> <Form.Control type="text" value={range} 
+                                        onChange={(event) => setrange(event.target.value)} style={{textAlign: "center"}}/> </td>
+
+                                <td> <Form.Control type="text" value={detail} 
+                                        onChange={(event) => setDetail(event.target.value)} style={{textAlign: "center"}}/> </td>
+                                
+                                <td> <Form.Control onChange={(event) => setFile(event.target.files[0])} type="file"/> </td>
+
                                 <td> <Button type="submit" variant="light" style={{ width: "100%"}}> 요청 </Button> </td>
                             </tr>
                         </tbody>
@@ -212,25 +284,67 @@ const MediaBoard = () => {
                     
                 </Form>
             </Row>
+        
             <Row style={{display: "flex", justifyContent: "center", height: "65vh", overflow: "auto"}}>
                 <Table>
-                    <thead>
-                        <th style={{ width: "7%" }}> 요청일 </th>
-                        <th style={{ width: "7%" }}> 마감일 </th>
-                        <th style={{ width: "10%" }}> 소속 </th>
-                        <th style={{ width: "5%" }}> 요청자 </th>
-                        <th style={{ width: "5%" }}> 고객사 </th>
-                        <th style={{ width: "10%" }}> 관련 기술 </th>
-                        <th style={{ width: "10%" }}> URL / APP </th>
-                        <th style={{ width: "20%" }}> 상세 </th>
-                        <th style={{ width: "5%" }}> 현황 </th>
+                    <thead className="sticky-header">
+                        <tr>
+                            <th style={{ width: "7%" }}> 
+                                <Dropdown onSelect={(eventKey) => Filter({monthF: eventKey})}> 
+                                    <Dropdown.Toggle as={Button} variant="light" style={{width: "100%", color: "black"}}>
+                                        { `요청일 : ${monthFilter}`}
+                                    </Dropdown.Toggle>
+                                    <Dropdown.Menu style={{fontSize: "1.5vh", textAlign: "center"}}>
+                                        { ["전체", ...monthList].map((item, index) => {
+                                            return (
+                                                <Dropdown.Item key={index} eventKey={item}> {item} </Dropdown.Item>
+                                            );
+                                        })};
+                                    </Dropdown.Menu>
+                                </Dropdown> 
+                            </th>
+                            <th style={{ width: "7%" }}> <Button variant="light"> 기한 </Button> </th>
+                            <th style={{ width: "10%" }}> 
+                                <Dropdown onSelect={(eventKey) => Filter({ belongF: eventKey})}> 
+                                    <Dropdown.Toggle as={Button} variant="light" style={{width: "100%", color: "black"}}>
+                                        {`소속: ${belongFilter}`}
+                                    </Dropdown.Toggle>
+                                    <Dropdown.Menu style={{fontSize: "1.5vh", textAlign: "center"}}>
+                                        { ["전체",...belongList].map((item, index) => {
+                                            return (
+                                                <Dropdown.Item key={index} eventKey={item}> {item} </Dropdown.Item>
+                                            );
+                                        })};
+                                    </Dropdown.Menu>
+                                </Dropdown> 
+                            </th>
+                            <th style={{ width: "5%" }}> <Button variant="light"> 요청자 </Button> </th>
+                            <th style={{ width: "5%" }}> <Button variant="light"> 고객사 </Button> </th>
+                            <th style={{ width: "10%" }}> <Button variant="light"> 카테고리 </Button> </th>
+                            <th style={{ width: "10%" }}> <Button variant="light"> 범주 </Button> </th>
+                            <th style={{ width: "20%" }}> <Button variant="light"> 상세 </Button> </th>
+                            <th style={{ width: "5%" }}> 
+                                <Dropdown onSelect={(eventKey) => Filter({statusF: eventKey})}>
+                                    <Dropdown.Toggle as={Button} variant="light" style={{width: "100%", color: "black"}}>
+                                        {`현황 : ${statusFilter}`}
+                                    </Dropdown.Toggle>
+                                    <Dropdown.Menu style={{fontSize: "1.5vh", textAlign: "center"}}>
+                                        {statusList.map((item, index) => {
+                                            return (
+                                                <Dropdown.Item key={index} eventKey={item}> {item} </Dropdown.Item>
+                                            )
+                                        })}
+                                    </Dropdown.Menu>
+                                </Dropdown>
+                            </th>
+                        </tr>
                     </thead>
                     <tbody style={{verticalAlign: "middle"}}>
-                        { requestList.map((item, index) => {
+                        { filteredList.map((item, index) => {
                             const start_date = ConvertDate({datetime: new Date(item.request_date.$date)})
                             const end_date = ConvertDate({datetime: new Date(item.dead_line.$date)})
                             return (
-                                <MediaRequest
+                                <MediaRequest 
                                     key={index}
                                     id={item._id.$oid}
                                     start_date={start_date}
@@ -238,14 +352,14 @@ const MediaBoard = () => {
                                     belong={item.belong}
                                     requester={item.requester}
                                     customer={item.customer}
-                                    stack={item.stack}
-                                    reference={item.reference}
+                                    category={item.category}
+                                    range={item.range}
                                     detail={item.detail}
                                     status={item.status}
                                     UpdateRequest={UpdateRequest}
                                     />
-                            )
-                        }) }
+                                )
+                        })}
                     </tbody>
                 </Table>
             </Row>

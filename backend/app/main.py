@@ -16,6 +16,7 @@ app.add_middleware(
 )
 
 app.include_router(tech_router.router)
+app.include_router(media_router.router)
 
 @app.get("/")
 def read_root():

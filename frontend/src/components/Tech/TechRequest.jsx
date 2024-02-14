@@ -2,7 +2,7 @@ import axios from "axios";
 import { Dropdown, Button } from "react-bootstrap";
 
 const TechRequest = ({
-    key, id, start_date, end_date, belong, requester, customer, 
+    id, start_date, end_date, belong, requester, customer, 
     stack, reference, detail, status, UpdateRequest}) => {
 
     const AdjustStatus = async(eventKey) => {
@@ -14,12 +14,11 @@ const TechRequest = ({
                                     "Content-Type": "application/json"
                             }});
             
-            UpdateRequest(response.data)
-
+            UpdateRequest(response.data);
 
         } catch {
             alert("에러");
-        }
+        };
     };
     
     return (
