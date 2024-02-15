@@ -1,9 +1,11 @@
 import axios from "axios";
 import { Dropdown, Button } from "react-bootstrap";
+import { Link } from "react-router-dom";
 
 const MediaRequest = ({
     id, start_date, end_date, belong, requester, customer, 
-    stack, reference, detail, status, UpdateRequest}) => {
+    category, range, detail, file, status, UpdateRequest}) => {
+    
 
     const AdjustStatus = async(eventKey) => {
         try{
@@ -28,9 +30,10 @@ const MediaRequest = ({
             <td> {belong} </td>
             <td> {requester} </td>
             <td> {customer} </td>
-            <td> {stack} </td>
-            <td> {reference} </td>
+            <td> {category} </td>
+            <td> {range} </td>
             <td> {detail} </td>
+            <td> <Link to={`https://blorange.s3.ap-northeast-2.amazonaws.com/media/${file}`} target={"_blank"}> {file} </Link> </td>
             <td>
                 <Dropdown onSelect={AdjustStatus}>
                     <Dropdown.Toggle as={Button} variant="light" style={{width: "100%", color: "black"}}>

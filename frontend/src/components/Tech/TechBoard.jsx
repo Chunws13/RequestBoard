@@ -3,21 +3,13 @@ import { Container, Row, Col, Form, Table, Button, Dropdown } from 'react-bootst
 import { useState, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import TechRequest from "./TechRequest";
+import { ConvertDate } from "../utils/ConvertDate";
 import '../css/BoardStyle.css'
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'react-datepicker/dist/react-datepicker.css';
 
 const TechBoard = () => {
-    const ConvertDate = ({ datetime }) => {
-        const year = datetime.getFullYear();
-        let month = datetime.getMonth() + 1;
-        let day = datetime.getDate();
-        
-        month = month.toString().length === 1 ? `0${month}` : month
-        day = day.toString().length === 1 ? `0${day}` : day
-
-        return `${year}.${month}.${day}`
-    }
+    
     const [deadLine, setDeadLine] = useState(ConvertDate({datetime : new Date()}));
     const [belong, setBelong] = useState("선택");
     const [requester, setRequester] = useState("");
@@ -57,7 +49,6 @@ const TechBoard = () => {
         } catch {
             alert("에러");
         }
-
     };
 
     const RequestRegist = async(event) => {
@@ -73,8 +64,9 @@ const TechBoard = () => {
                                     "Content-Type": "application/json"
                             }})
 
-            setRequestList([response.data, ...requestList])
-
+            setRequestList([response.data, ...requestList]);
+            setFilteredList([response.data, ...filteredList]);
+            
             setDeadLine(ConvertDate({datetime: new Date()}));
             setBelong("선택");
             setRequester("");
@@ -89,7 +81,7 @@ const TechBoard = () => {
         
     };
     const UpdateRequest = (updateData) => {
-        setRequestList(( prevRequest ) => {
+        setFilteredList(( prevRequest ) => {
             return prevRequest.map((requestList) => {
                 if (requestList._id.$oid === updateData._id.$oid){
                     return updateData
@@ -149,6 +141,7 @@ const TechBoard = () => {
     useEffect(() => {
         RequestAllList();
         RecentMonth();
+
     }, []);
 
     return (
@@ -315,8 +308,8 @@ const TechBoard = () => {
                     </thead>
                     <tbody style={{verticalAlign: "middle"}}>
                         { filteredList.map((item, index) => {
-                            const start_date = ConvertDate({datetime: new Date(item.request_date.$date)})
-                            const end_date = ConvertDate({datetime: new Date(item.dead_line.$date)})
+                            const start_date = ConvertDate({datetime: new Date(item.request_date.$date)});
+                            const end_date = ConvertDate({datetime: new Date(item.dead_line.$date)});
                             return (
                                 <TechRequest 
                                     key={index}

@@ -3,21 +3,13 @@ import { Container, Row, Col, Form, Table, Button, Dropdown } from 'react-bootst
 import { useState, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import MediaRequest from "./MediaRequest";
+import { ConvertDate } from "../utils/ConvertDate";
 import '../css/BoardStyle.css'
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'react-datepicker/dist/react-datepicker.css';
 
 const MediaBoard = () => {
-    const ConvertDate = ({ datetime }) => {
-        const year = datetime.getFullYear();
-        let month = datetime.getMonth() + 1;
-        let day = datetime.getDate();
-        
-        month = month.toString().length === 1 ? `0${month}` : month
-        day = day.toString().length === 1 ? `0${day}` : day
-
-        return `${year}.${month}.${day}`
-    }
+    
     const [deadLine, setDeadLine] = useState(ConvertDate({datetime : new Date()}));
     const [belong, setBelong] = useState("선택");
     const [requester, setRequester] = useState("");
@@ -63,7 +55,6 @@ const MediaBoard = () => {
 
     const RequestRegist = async(event) => {
         event.preventDefault();
-        console.log(file)
         const postData = {
             dead_line: deadLine, 
             requester: requester, 
@@ -76,16 +67,13 @@ const MediaBoard = () => {
 
         const newPostData = new FormData();
         for (let [key, value] of Object.entries(postData)){
-
             newPostData.append(key, value);
         }
-        
-        newPostData.append("Create_Request", "postData")
 
-        newPostData.append("file", file)
-        for (let n of newPostData.entries()) {
-            console.log(n)
+        if (file !== null){
+            newPostData.append("file", file)
         }
+        
         try {
             const response = await axios.post("http://127.0.0.1:8000/api/media/",
                             newPostData
@@ -94,8 +82,9 @@ const MediaBoard = () => {
                                 headers:{ 
                                     "Content-Type": "multipart/form-data"
                             }})
-            return 
-            setRequestList([response.data, ...requestList])
+            
+            setRequestList([response.data, ...requestList]);
+            setRequestList([response.data, ...filteredList]);
 
             setDeadLine(ConvertDate({datetime: new Date()}));
             setBelong("선택");
@@ -107,12 +96,11 @@ const MediaBoard = () => {
             
         } catch (error) {
             alert(error);
-            console.log(error)
         }
         
     };
     const UpdateRequest = (updateData) => {
-        setRequestList(( prevRequest ) => {
+        setFilteredList(( prevRequest ) => {
             return prevRequest.map((requestList) => {
                 if (requestList._id.$oid === updateData._id.$oid){
                     return updateData
@@ -323,6 +311,7 @@ const MediaBoard = () => {
                             <th style={{ width: "10%" }}> <Button variant="light"> 카테고리 </Button> </th>
                             <th style={{ width: "10%" }}> <Button variant="light"> 범주 </Button> </th>
                             <th style={{ width: "20%" }}> <Button variant="light"> 상세 </Button> </th>
+                            <th style={{ width: "20%" }}> <Button variant="light"> 첨부파일 </Button> </th>
                             <th style={{ width: "5%" }}> 
                                 <Dropdown onSelect={(eventKey) => Filter({statusF: eventKey})}>
                                     <Dropdown.Toggle as={Button} variant="light" style={{width: "100%", color: "black"}}>
@@ -341,6 +330,7 @@ const MediaBoard = () => {
                     </thead>
                     <tbody style={{verticalAlign: "middle"}}>
                         { filteredList.map((item, index) => {
+                            
                             const start_date = ConvertDate({datetime: new Date(item.request_date.$date)})
                             const end_date = ConvertDate({datetime: new Date(item.dead_line.$date)})
                             return (
@@ -355,6 +345,7 @@ const MediaBoard = () => {
                                     category={item.category}
                                     range={item.range}
                                     detail={item.detail}
+                                    file = {item.file}
                                     status={item.status}
                                     UpdateRequest={UpdateRequest}
                                     />
